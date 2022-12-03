@@ -1,7 +1,13 @@
 #!/bin/bash
 # package updates
-#################Automation_script#############################
-#################Version 1.0 ##################################
+#######################Automation,sh V0.1##########################################
+####### Version V0.1 Ec2 instance is created 
+####### Apache instance & aws instance installed & services are running
+####### Apache file serverlog archieved and transfered to s3 bucket
+#######################Automation.sh V0.2###########################################
+###### Book keeping done with /var/www/html/inventory.html
+###### Cron job created to start the script automatically
+####################################################################################
 sudo echo Y | apt update && sudo apt -y upgrade
 echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
 sudo systemctl status apache2 |grep Active
@@ -80,16 +86,30 @@ myname="umadevi"
 s3_bucket="upgrad-umadevi"
 timestamp=$(date '+%d%m%Y-%H%M%S')
 extension=".tar"
+file=/tmp/${myname}-httpd-logs-${timestamp}${extension}
+echo "file : ${file}"
 sudo tar -cvf /tmp/${myname}-httpd-logs-${timestamp}${extension}  /var/log/apache2/*.log
+sleep 20
+
+size=`sudo stat -c "%s" /etc/*.conf|paste -sd+|bc -l`
+
+
 
 echo "\n /tmp/$myname-httpd-logs-$timestamp$extension"
 echo "==============================================="
-echo " LOg Details Available in /tmp/book_keeping.txt"
+echo " LOg Details Available in /var/www/html/inventory.html"
 echo "==============================================="
-sudo echo "\n $date \t \t /tmp/$myname-httpd-logs-$timestamp$extension" >> /tmp/book_keeping.txt
+
+
+
+echo "<tr> <td>httpd-logs</td><td>$timestamp</td><td>$extension<td>/tmp/$myname-httpd-logs-$timestamp$extension></td><td>$size</td></tr>"	>> /var/www/html/inventory.html
+
+
+
 
 echo "==============================================="
 echo " TRANSFER OF ARCHIVE FILES TO AWS S3 STORAGE "
 echo "==============================================="
 
 aws s3 cp /tmp/${myname}-httpd-logs-${timestamp}${extension} s3://${s3_bucket}/${myname}-httpd-logs-${timestamp}${extension}
+aws s3 cp /var/www/html/inventory.html s3://${s3_bucket}/inventory.html
